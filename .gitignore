@@ -1,0 +1,29 @@
+## .NET Core / Visual Studio
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.sln.docstates
+*.DotSettings.user
+
+## OS / IDE
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+*.tmp
+*~
+
+## Archives
+*.zip
+*.tar.gz
+*.rar
+
+## Rider
+.idea/
+*.sln.iml

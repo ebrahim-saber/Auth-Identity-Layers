@@ -1,0 +1,48 @@
+using System.Threading;
+using System.Threading.Tasks;
+using FluentValidation;
+using MediatR;
+
+namespace IdentityAuthLayer.Application.Common.Behaviors
+{
+    /// <summary>
+    /// بيشغّل كل الـ FluentValidation Validators الخاصة بالـ Request قبل ما يوصل للـ Handler.
+    /// من غير الكلاس ده، الـ Validators المكتوبة (زي CreatePasswordCommandValidator) بتتسجل في DI
+    /// بس محدش بينادي عليها فعليًا. لو فيه أخطاء Validation، بيرمي FluentValidation.ValidationException
+    /// اللي ExceptionMiddleware بيلقطها ويرجعها كـ ApplicationResponse (400) بقائمة الأخطاء.
+    /// </summary>
+    public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+        where TRequest : IRequest<TResponse>
+    {
+        private readonly IEnumerable<IValidator<TRequest>> _validators;
+
+        public ValidationBehavior(IEnumerable<IValidator<TRequest>> validators)
+        {
+            _validators = validators;
+        }
+
+        public async Task<TResponse> Handle(
+            TRequest request,
+            RequestHandlerDelegate<TResponse> next,
+            CancellationToken cancellationToken)
+        {
+            if (!_validators.Any())
+                return await next();
+
+            var context = new ValidationContext<TRequest>(request);
+
+            var validationResults = await Task.WhenAll(
+                _validators.Select(v => v.ValidateAsync(context, cancellationToken)));
+
+            var failures = validationResults
+                .SelectMany(r => r.Errors)
+                .Where(f => f is not null)
+                .ToList();
+
+            if (failures.Count != 0)
+                throw new ValidationException(failures);
+
+            return await next();
+        }
+    }
+}
